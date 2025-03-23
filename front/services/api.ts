@@ -10,7 +10,7 @@ const getAuthToken = () => {
 }
 
 // Helper function for API requests
-async function fetchAPI(endpoint: string, options: RequestInit = {}) {
+/*async function fetchAPI(endpoint: string, options: RequestInit = {}) {
   const token = getAuthToken()
 
   const headers = {
@@ -35,122 +35,70 @@ async function fetchAPI(endpoint: string, options: RequestInit = {}) {
     console.error("API request error:", error)
     throw error
   }
-}
+}*/
 
+  const apiFetch = async (url: string, options: RequestInit = {}) => {
+    const tokens = JSON.parse(localStorage.getItem("tokens") || "{}");
+    const accessToken = tokens.access;
+  
+    const headers = {
+      "Content-Type": "application/json",
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}), // ✅ Добавляем токен
+    };
+    console.log(headers)
+    const res = await fetch(url, { ...options, headers });
+    return res.json();
+  };
+
+
+  interface Product {
+    id: number;
+    name: string;
+    category: string;
+    price: number;
+    originalPrice?: number;
+    discount?: number;
+    image: string;
+    colors: string[];
+    sizes: string[];
+  }
 // Products API
 export const productsAPI = {
-  getAll: async (category?: string, search?: string) => {
-    // In a real app, this would be an API call
-    // return fetchAPI(`/products?category=${category || ''}&search=${search || ''}`)
+  getAll: async (category?: string, search?: string): Promise<Product[]> => {
+    
+    const response = await fetch("http://127.0.0.1:8000/api/products/");
+    if (!response.ok) {
+      throw new Error("Ошибка при загрузке продуктов");
+    }
 
-    // For demo purposes, we'll use mock data with a delay to simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 800))
+    // Парсим JSON-ответ
+    const products: Product[] = await response.json();
 
-    // Mock products data
-    const products = [
-      {
-        id: 1,
-        name: "Wireless Bluetooth Headphones",
-        category: "Electronics",
-        price: 79.99,
-        originalPrice: 99.99,
-        discount: 20,
-        image: "/placeholder.svg?height=400&width=400",
-        colors: ["Black", "White", "Blue"],
-        sizes: ["One Size"],
-      },
-      {
-        id: 2,
-        name: "Premium Cotton T-Shirt",
-        category: "Clothing",
-        price: 24.99,
-        image: "/placeholder.svg?height=400&width=400",
-        colors: ["White", "Black", "Gray", "Navy"],
-        sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-      },
-      {
-        id: 3,
-        name: "Smart Watch Series 5",
-        category: "Electronics",
-        price: 199.99,
-        originalPrice: 249.99,
-        discount: 20,
-        image: "/placeholder.svg?height=400&width=400",
-        colors: ["Black", "Silver", "Gold"],
-        sizes: ["40mm", "44mm"],
-      },
-      {
-        id: 4,
-        name: "Kitchen Knife Set",
-        category: "Home & Kitchen",
-        price: 49.99,
-        image: "/placeholder.svg?height=400&width=400",
-        colors: ["Silver", "Black"],
-        sizes: ["One Size"],
-      },
-      {
-        id: 5,
-        name: "Organic Face Cream",
-        category: "Beauty",
-        price: 34.99,
-        image: "/placeholder.svg?height=400&width=400",
-        colors: ["Default"],
-        sizes: ["50ml", "100ml"],
-      },
-      {
-        id: 6,
-        name: "Yoga Mat",
-        category: "Sports",
-        price: 29.99,
-        originalPrice: 39.99,
-        discount: 25,
-        image: "/placeholder.svg?height=400&width=400",
-        colors: ["Purple", "Blue", "Black", "Pink"],
-        sizes: ["Standard"],
-      },
-      {
-        id: 7,
-        name: "Stainless Steel Water Bottle",
-        category: "Sports",
-        price: 19.99,
-        image: "/placeholder.svg?height=400&width=400",
-        colors: ["Silver", "Black", "Blue", "Red"],
-        sizes: ["500ml", "750ml", "1L"],
-      },
-      {
-        id: 8,
-        name: "Wireless Earbuds",
-        category: "Electronics",
-        price: 89.99,
-        originalPrice: 119.99,
-        discount: 25,
-        image: "/placeholder.svg?height=400&width=400",
-        colors: ["White", "Black"],
-        sizes: ["One Size"],
-      },
-      {
-        id: 9,
-        name: "Ceramic Coffee Mug",
-        category: "Home & Kitchen",
-        price: 12.99,
-        image: "/placeholder.svg?height=400&width=400",
-        colors: ["White", "Black", "Blue", "Red"],
-        sizes: ["Standard"],
-      },
-    ]
-
-    // Filter by category if provided
-    let filteredProducts = products
+    // Фильтрация по категории
+    let filteredProducts = products;
     if (category) {
-      filteredProducts = filteredProducts.filter((product) => product.category.toLowerCase() === category.toLowerCase())
+      filteredProducts = filteredProducts.filter((product) =>
+        product.category.toLowerCase() === category.toLowerCase()
+      );
     }
 
-    // Filter by search term if provided
+    // Фильтрация по поисковому запросу
     if (search) {
-      filteredProducts = filteredProducts.filter((product) => product.name.toLowerCase().includes(search.toLowerCase()))
+      filteredProducts = filteredProducts.filter((product) =>
+        product.name.toLowerCase().includes(search.toLowerCase())
+      );
     }
 
-    return filteredProducts
+    return filteredProducts;
+  },
+  
+  getCategories: async (): Promise<string[]> => {
+    const response = await fetch("http://127.0.0.1:8000/api/categories/");
+    if (!response.ok) {
+      throw new Error("Ошибка при загрузке категорий");
+    }
+    
+    return await response.json(); // Предполагаем, что сервер вернет массив строк ["Electronics", "Clothing", ...]
   },
 
   getById: async (id: number) => {
@@ -158,10 +106,10 @@ export const productsAPI = {
     // return fetchAPI(`/products/${id}`)
 
     // For demo purposes, we'll use mock data with a delay to simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 500))
+    //await new Promise((resolve) => setTimeout(resolve, 500))
 
     // Mock products data
-    const products = [
+    /*const products = [
       {
         id: 1,
         name: "Wireless Bluetooth Headphones",
@@ -210,10 +158,16 @@ export const productsAPI = {
         description:
           "This professional-grade kitchen knife set includes chef's knife, bread knife, utility knife, and paring knife. Made from high-quality stainless steel with ergonomic handles for precision cutting.",
       },
-    ]
+    ]*/
 
-    const product = products.find((p) => p.id === id)
+    //const product = products.find((p) => p.id === id)
+    const response = await fetch(`http://127.0.0.1:8000/api/product_details/${id}`);
+    if (!response.ok) {
+      throw new Error("Ошибка при загрузке продукта");
+    }
 
+    // Парсим JSON-ответ
+    const product: Product = await response.json();
     if (!product) {
       throw new Error("Product not found")
     }
@@ -227,9 +181,9 @@ export const ordersAPI = {
   getAll: async () => {
     // Check if user is authenticated
     const token = getAuthToken()
-    if (!token) {
+    /*if (!token) {
       throw new Error("Authentication required")
-    }
+    }*/
 
     // In a real app, this would be an API call
     // return fetchAPI('/orders')

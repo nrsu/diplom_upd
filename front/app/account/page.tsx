@@ -30,11 +30,18 @@ function AccountSettings() {
   const { user, isLoading, updateUserProfile, updatePassword } = useAuth()
   const router = useRouter()
 
+  
+
   const [profileData, setProfileData] = useState({
     firstName: "",
     lastName: "",
     email: "",
   })
+
+  useEffect(() => {
+    console.log("profileData:", profileData);
+  }, [profileData]);
+  
 
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
@@ -45,13 +52,15 @@ function AccountSettings() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Load user data when available
+     
   useEffect(() => {
+    console.log("User data from auth-context:", user);
     if (user) {
       setProfileData({
-        firstName: user.firstName || "",
-        lastName: user.lastName || "",
+        firstName: user.first_name || "",
+        lastName: user.last_name || "",
         email: user.email,
+        username: user.username
       })
     }
   }, [user])
@@ -175,7 +184,7 @@ function AccountSettings() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="lastName">Last name</Label>
-                    <Input id="lastName" name="lastName" value={profileData.lastName} onChange={handleProfileChange} />
+                    <Input id="lastName" name="lastName" type="lastName" value={profileData.lastName} onChange={handleProfileChange} />
                   </div>
                 </div>
 

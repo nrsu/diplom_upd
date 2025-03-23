@@ -18,7 +18,7 @@ interface AuthContextType {
   signup: (userData: SignupData) => Promise<void>;
   logout: () => void;
   error: string | null;
-  //updateUserProfile: (userData: Partial<User>) => Promise<void>;
+  updateUserProfile: (profileData: { firstName: string; lastName: string; email: string; username: string }) => Promise<void>;
   updatePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }
 
@@ -59,21 +59,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     setError(null);
-
+  
     try {
       const res = await fetch("http://127.0.0.1:8000/api/login/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-
+  
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Ошибка входа");
-
-      localStorage.setItem("user", JSON.stringify(data.user));
+  
+      const userData = {
+        ...data.user,
+        token: data.tokens.access, // ✅ Добавляем токен
+      };
+  
+      localStorage.setItem("user", JSON.stringify(userData));
       localStorage.setItem("tokens", JSON.stringify(data.tokens));
+  
+      console.log("Сохранённые токены:", localStorage.getItem("tokens"));
 
-      setUser(data.user);
+      setUser(userData);
       router.push("/");
     } catch (err: any) {
       setError(err.message);
@@ -81,6 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
     }
   };
+  
 
   // 📝 Функция для регистрации
   const signup = async ({ email, password, firstName, lastName }: SignupData) => {
@@ -96,11 +104,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Ошибка регистрации");
+      const userData = {
+        ...data.user, 
+        token: data.tokens.access, // ✅ Добавляем токен в user
+      };
 
-      localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem("user", JSON.stringify(userData));
       localStorage.setItem("tokens", JSON.stringify(data.tokens));
 
-      setUser(data.user);
+      setUser(userData);
       router.push("/");
     } catch (err: any) {
       setError(err.message);
@@ -117,35 +129,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push("/login");
   };
 
+
+  
+
+
   // 🔄 Обновление профиля пользователя
-  // const updateUserProfile = async (userData: Partial<User>) => {
-  //   setIsLoading(true);
-  //   setError(null);
-
-  //   try {
-  //     const tokens = JSON.parse(localStorage.getItem("tokens") || "{}");
-  //     const res = await fetch("http://127.0.0.1:8000/api/user/profile/", {
-  //       method: "PUT",
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //         Authorization: `Bearer ${tokens.access}`,
-  //       },
-  //       body: JSON.stringify(userData),
-  //     });
-
-  //     const data = await res.json();
-  //     if (!res.ok) throw new Error(data.error || "Ошибка обновления профиля");
-
-  //     const updatedUser = { ...user, ...userData };
-  //     localStorage.setItem("user", JSON.stringify(updatedUser));
-  //     setUser(updatedUser);
-  //   } catch (err: any) {
-  //     setError(err.message);
-  //     throw err;
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
+  const updateUserProfile = async (profileData: { firstName: string; lastName: string; email: string; username: string }) => {
+    try {
+      const tokens = JSON.parse(localStorage.getItem("tokens") || "{}");
+      const username = profileData.username; // Используем username
+  
+      const res = await fetch(`http://127.0.0.1:8000/api/user-details/${username}/`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${tokens.access}`,
+        },
+        body: JSON.stringify(profileData),
+      });
+      await getUserProfile();
+      //profileData.username=username
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Ошибка обновления профиля");
+    } catch (err) {
+      if (err instanceof Error) {
+        console.error("Ошибка:", err.message);
+      } else {
+        console.error("Неизвестная ошибка:", err);
+      }
+      throw err;
+    }
+  };
+  
+  const getUserProfile = async () => {
+    try {
+      const tokens = JSON.parse(localStorage.getItem("tokens") || "{}");
+  
+      const res = await fetch("http://127.0.0.1:8000/api/user-details/", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${tokens.access}`,
+        },
+      });
+  
+      if (!res.ok) throw new Error("Ошибка загрузки профиля");
+  
+      const userData = await res.json();
+  
+      // ✅ Обновляем контекст и localStorage
+      setUser(userData);
+      localStorage.setItem("user", JSON.stringify(userData));
+  
+    } catch (err) {
+      console.error("Ошибка загрузки профиля:", err);
+    }
+  };
 
   // 🔑 Обновление пароля
   const updatePassword = async (currentPassword: string, newPassword: string) => {
@@ -183,7 +221,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signup,
         logout,
         error,
-        //updateUserProfile,
+        updateUserProfile,
         updatePassword,
       }}
     >

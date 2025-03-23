@@ -9,12 +9,15 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SearchBar } from "@/components/search-bar"
 import ProductGrid from "./product-grid"
+import { productsAPI } from "@/services/api";
+//import { useState, useEffect } from "react";
 
 export default function ProductListPage({
   searchParams,
 }: {
   searchParams: { [key: string]: string | string[] | undefined }
 }) {
+  //const [categories, setCategories] = useState([]);
   const search = typeof searchParams.search === "string" ? searchParams.search : ""
   const category = typeof searchParams.category === "string" ? searchParams.category : ""
 
@@ -155,6 +158,7 @@ const categories = [
   { id: 4, name: "Beauty" },
   { id: 5, name: "Sports" },
 ]
+//const categories = await productsAPI.getCategories();
 
 const priceRanges = [
   { id: 1, label: "Under $25" },
