@@ -173,14 +173,14 @@ function OrderList({ orders }: { orders: Order[] }) {
                 </div>
               </div>
 
-              <div className="flex justify-end">
+              {/* <div className="flex justify-end">
                 <Button variant="outline" size="sm" asChild>
                   <Link href={`/orders/${order.id}`}>
                     <Eye className="h-4 w-4 mr-2" />
                     View Order Details
                   </Link>
                 </Button>
-              </div>
+              </div> */}
             </div>
           </CardContent>
         </Card>

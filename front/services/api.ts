@@ -177,7 +177,7 @@ export const productsAPI = {
 }
 
 // Orders API
-export const ordersAPI = {
+/*export const ordersAPI = {
   getAll: async () => {
     // Check if user is authenticated
     const token = getAuthToken()
@@ -189,10 +189,10 @@ export const ordersAPI = {
     // return fetchAPI('/orders')
 
     // For demo purposes, we'll use mock data with a delay to simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    //await new Promise((resolve) => setTimeout(resolve, 1000))
 
     // Mock orders data
-    return [
+    /*return [
       {
         id: "ORD-12345",
         date: "March 8, 2025",
@@ -279,119 +279,166 @@ export const ordersAPI = {
           },
         ],
       },
-    ]
-  },
+    ]*/
+  //},
 
-  getById: async (id: string) => {
-    // Check if user is authenticated
-    const token = getAuthToken()
+  // getById: async (id: string) => {
+  //   // Check if user is authenticated
+  //   const token = getAuthToken()
+  //   if (!token) {
+  //     throw new Error("Authentication required")
+  //   }
+
+  //   // In a real app, this would be an API call
+  //   // return fetchAPI(`/orders/${id}`)
+
+  //   // For demo purposes, we'll use mock data with a delay to simulate API call
+  //   await new Promise((resolve) => setTimeout(resolve, 800))
+
+  //   // Mock orders data
+  //   const orders = [
+  //     {
+  //       id: "ORD-12345",
+  //       date: "March 8, 2025",
+  //       status: "Processing",
+  //       total: 329.97,
+  //       shippingAddress: "123 Main St, Anytown, CA 12345",
+  //       paymentMethod: "Credit Card (ending in 4242)",
+  //       items: [
+  //         {
+  //           id: 1,
+  //           name: "Wireless Bluetooth Headphones",
+  //           price: 79.99,
+  //           quantity: 1,
+  //           image: "/placeholder.svg?height=50&width=50",
+  //         },
+  //         {
+  //           id: 3,
+  //           name: "Smart Watch Series 5",
+  //           price: 199.99,
+  //           quantity: 1,
+  //           image: "/placeholder.svg?height=50&width=50",
+  //         },
+  //         {
+  //           id: 4,
+  //           name: "Kitchen Knife Set",
+  //           price: 49.99,
+  //           quantity: 1,
+  //           image: "/placeholder.svg?height=50&width=50",
+  //         },
+  //       ],
+  //     },
+  //     {
+  //       id: "ORD-12344",
+  //       date: "March 1, 2025",
+  //       status: "Shipped",
+  //       total: 114.97,
+  //       shippingAddress: "123 Main St, Anytown, CA 12345",
+  //       paymentMethod: "PayPal",
+  //       items: [
+  //         {
+  //           id: 2,
+  //           name: "Premium Cotton T-Shirt",
+  //           price: 24.99,
+  //           quantity: 2,
+  //           image: "/placeholder.svg?height=50&width=50",
+  //         },
+  //         {
+  //           id: 5,
+  //           name: "Organic Face Cream",
+  //           price: 34.99,
+  //           quantity: 1,
+  //           image: "/placeholder.svg?height=50&width=50",
+  //         },
+  //         {
+  //           id: 7,
+  //           name: "Stainless Steel Water Bottle",
+  //           price: 19.99,
+  //           quantity: 1,
+  //           image: "/placeholder.svg?height=50&width=50",
+  //         },
+  //       ],
+  //     },
+  //     {
+  //       id: "ORD-12343",
+  //       date: "February 15, 2025",
+  //       status: "Delivered",
+  //       total: 249.97,
+  //       shippingAddress: "123 Main St, Anytown, CA 12345",
+  //       paymentMethod: "Credit Card (ending in 4242)",
+  //       items: [
+  //         {
+  //           id: 8,
+  //           name: "Wireless Earbuds",
+  //           price: 89.99,
+  //           quantity: 1,
+  //           image: "/placeholder.svg?height=50&width=50",
+  //         },
+  //         {
+  //           id: 3,
+  //           name: "Smart Watch Series 5",
+  //           price: 199.99,
+  //           quantity: 1,
+  //           image: "/placeholder.svg?height=50&width=50",
+  //         },
+  //       ],
+  //     },
+  //   ]
+
+  //   const order = orders.find((o) => o.id === id)
+
+  //   if (!order) {
+  //     throw new Error("Order not found")
+  //   }
+
+  //   return order
+  // },
+//}
+export const ordersAPI = {
+  getAll: async () => {
+    /*const token = getAuthToken(); // Получаем токен авторизации
     if (!token) {
-      throw new Error("Authentication required")
+      throw new Error("Authentication required");
+    }*/
+
+    try {
+      const tokens = JSON.parse(localStorage.getItem("tokens") || "{}");
+      const response = await fetch("http://127.0.0.1:8000/api/order/", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${tokens.access}`, // Передаем токен в заголовке
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Ошибка ${response.status}: ${response.statusText}`);
+      }
+
+      const orders = await response.json();
+
+      // Форматируем данные под формат мок-даты
+      return orders.map((order) => ({
+        id: `ORD-${order.id}`, // Префикс ORD-
+        date: order.date, // Дата как строка
+        status: order.status.charAt(0).toUpperCase() + order.status.slice(1), // Capitalize статус
+        total: parseFloat(order.total), // Преобразуем цену в float
+        shippingAddress: order.shippingInfo.address, // Адрес доставки
+        paymentMethod: order.paymentMethod.includes("Credit Card")
+          ? `Credit Card (ending in ****)` // Форматируем кредитную карту
+          : order.paymentMethod,
+        items: order.items.map((item) => ({
+          id: item.id,
+          name: item.name,
+          price: parseFloat(item.price), // Преобразуем цену в float
+          quantity: item.quantity,
+          image: item.image || "/placeholder.svg?height=50&width=50", // Дефолтное изображение
+        })),
+      }));
+    } catch (error) {
+      console.error("Ошибка при загрузке заказов:", error);
+      throw error;
     }
-
-    // In a real app, this would be an API call
-    // return fetchAPI(`/orders/${id}`)
-
-    // For demo purposes, we'll use mock data with a delay to simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 800))
-
-    // Mock orders data
-    const orders = [
-      {
-        id: "ORD-12345",
-        date: "March 8, 2025",
-        status: "Processing",
-        total: 329.97,
-        shippingAddress: "123 Main St, Anytown, CA 12345",
-        paymentMethod: "Credit Card (ending in 4242)",
-        items: [
-          {
-            id: 1,
-            name: "Wireless Bluetooth Headphones",
-            price: 79.99,
-            quantity: 1,
-            image: "/placeholder.svg?height=50&width=50",
-          },
-          {
-            id: 3,
-            name: "Smart Watch Series 5",
-            price: 199.99,
-            quantity: 1,
-            image: "/placeholder.svg?height=50&width=50",
-          },
-          {
-            id: 4,
-            name: "Kitchen Knife Set",
-            price: 49.99,
-            quantity: 1,
-            image: "/placeholder.svg?height=50&width=50",
-          },
-        ],
-      },
-      {
-        id: "ORD-12344",
-        date: "March 1, 2025",
-        status: "Shipped",
-        total: 114.97,
-        shippingAddress: "123 Main St, Anytown, CA 12345",
-        paymentMethod: "PayPal",
-        items: [
-          {
-            id: 2,
-            name: "Premium Cotton T-Shirt",
-            price: 24.99,
-            quantity: 2,
-            image: "/placeholder.svg?height=50&width=50",
-          },
-          {
-            id: 5,
-            name: "Organic Face Cream",
-            price: 34.99,
-            quantity: 1,
-            image: "/placeholder.svg?height=50&width=50",
-          },
-          {
-            id: 7,
-            name: "Stainless Steel Water Bottle",
-            price: 19.99,
-            quantity: 1,
-            image: "/placeholder.svg?height=50&width=50",
-          },
-        ],
-      },
-      {
-        id: "ORD-12343",
-        date: "February 15, 2025",
-        status: "Delivered",
-        total: 249.97,
-        shippingAddress: "123 Main St, Anytown, CA 12345",
-        paymentMethod: "Credit Card (ending in 4242)",
-        items: [
-          {
-            id: 8,
-            name: "Wireless Earbuds",
-            price: 89.99,
-            quantity: 1,
-            image: "/placeholder.svg?height=50&width=50",
-          },
-          {
-            id: 3,
-            name: "Smart Watch Series 5",
-            price: 199.99,
-            quantity: 1,
-            image: "/placeholder.svg?height=50&width=50",
-          },
-        ],
-      },
-    ]
-
-    const order = orders.find((o) => o.id === id)
-
-    if (!order) {
-      throw new Error("Order not found")
-    }
-
-    return order
   },
-}
+};
 

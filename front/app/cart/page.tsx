@@ -25,8 +25,8 @@ export default function CartPage() {
   }
 
   const shipping = 5.99
-  const tax = cartTotal * 0.07
-  const total = cartTotal + shipping + tax
+  //const tax = cartTotal * 0.07
+  const total = cartTotal + shipping //+ tax
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -126,7 +126,7 @@ export default function CartPage() {
                     title: "Promo code applied",
                     description: "Your discount has been applied to the order.",
                   })
-                  setPromoCode("")
+                  setPromoCode("firstorder")
                 }}
                 disabled={!promoCode.trim()}
               >
@@ -153,10 +153,10 @@ export default function CartPage() {
                     <span className="text-muted-foreground">Shipping</span>
                     <span>${shipping.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between">
+                  {/* <div className="flex justify-between">
                     <span className="text-muted-foreground">Tax</span>
                     <span>${tax.toFixed(2)}</span>
-                  </div>
+                  </div> */}
                   <Separator />
                   <div className="flex justify-between font-bold">
                     <span>Total</span>

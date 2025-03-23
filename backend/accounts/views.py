@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import *
 from django.shortcuts import get_object_or_404
-
+from django.db import transaction
 
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
@@ -164,3 +164,134 @@ def get_categories(request):
 def get_product_details(request, product_id):
     product = get_object_or_404(Product, id=product_id)
     return JsonResponse(product.to_dict(), safe=False)
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def post_order(request):
+    print(f"📩 Новый заказ от: {request.user}")  # Логирование юзера
+
+    data = request.data  # Получаем JSON из запроса
+
+    if not data.get("items"):
+        return Response({"error": "Корзина пуста"}, status=400)
+
+    try:
+        with transaction.atomic():  # ✅ Транзакция для целостности
+            # Создание заказа
+            order = Order.objects.create(
+                user=request.user,
+                total_price=data.get("total_price", 0.0),
+                payment_method=data.get("payment_method", "credit-card"),
+            )
+
+            # Добавление товаров в заказ
+            order_items = []
+            for item in data["items"]:
+                product = Product.objects.get(id=item["product_id"])
+                order_item = OrderItem.objects.create(
+                    order=order,
+                    product=product,
+                    quantity=item["quantity"],
+                    selected_color=item.get("selected_color"),
+                    selected_size=item.get("selected_size"),
+                )
+                order_items.append(order_item)
+
+            # Создание информации о доставке
+            shipping = data.get("shipping", {})
+            shipping_info = ShippingInfo.objects.create(
+                order=order,
+                first_name=shipping.get("first_name", ""),
+                last_name=shipping.get("last_name", ""),
+                email=shipping.get("email", ""),
+                phone=shipping.get("phone", ""),
+                address=shipping.get("address", ""),
+                city=shipping.get("city", ""),
+                state=shipping.get("state", ""),
+                zip_code=shipping.get("zip_code", ""),
+                country=shipping.get("country", "Kazakhstan"),
+            )
+
+        # Готовим JSON-ответ
+        response_data = {
+            "id": order.id,
+            "user": order.user.id,
+            "payment_method": order.payment_method,
+            "total_price": float(order.total_price),
+            "status": order.status,
+            "created_at": order.created_at.isoformat(),
+            "items": [
+                {
+                    "id": item.id,
+                    "product_id": item.product.id,
+                    "quantity": item.quantity,
+                    "selected_color": item.selected_color,
+                    "selected_size": item.selected_size,
+                }
+                for item in order_items
+            ],
+            "shipping_info": {
+                "id": shipping_info.id,
+                "first_name": shipping_info.first_name,
+                "last_name": shipping_info.last_name,
+                "email": shipping_info.email,
+                "phone": shipping_info.phone,
+                "address": shipping_info.address,
+                "city": shipping_info.city,
+                "state": shipping_info.state,
+                "zip_code": shipping_info.zip_code,
+                "country": shipping_info.country,
+            },
+        }
+
+        return Response(response_data, status=201)
+
+    except Product.DoesNotExist:
+        return Response({"error": "Один из продуктов не найден"}, status=404)
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_order(request):
+    print("Получен запрос от:", request.user)
+
+    orders = Order.objects.filter(user=request.user).prefetch_related("items__product", "shipping_info")
+
+    order_data = []
+    for order in orders:
+        shipping_info = order.shipping_info.first()  # ✅ Берем первый объект, если есть
+
+        order_data.append({
+            "id": order.id,
+            "date": order.created_at.strftime("%B %d, %Y"),
+            "status": order.status,
+            "total": float(order.total_price),
+            "paymentMethod": order.payment_method,
+            "shippingInfo": {
+                "first_name": shipping_info.first_name,
+                "last_name": shipping_info.last_name,
+                "email": shipping_info.email,
+                "phone": shipping_info.phone,
+                "address": shipping_info.address,
+                "city": shipping_info.city,
+                "state": shipping_info.state,
+                "zip_code": shipping_info.zip_code,
+                "country": shipping_info.country,
+            } if shipping_info else None,  # ✅ Проверка, если доставки нет
+            "items": [
+                {
+                    "id": item.id,
+                    "product_id": item.product.id,
+                    "name": item.product.name,
+                    "price": float(item.product.price),
+                    "quantity": item.quantity,
+                    "selected_color": item.selected_color,
+                    "selected_size": item.selected_size,
+                    "image": getattr(item.product, "image_url", None),  # ✅ Безопасная проверка
+                }
+                for item in order.items.all()
+            ],
+        })
+
+    return Response(order_data, status=status.HTTP_200_OK)

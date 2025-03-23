@@ -1,5 +1,6 @@
 from django.db import models
 from decimal import Decimal
+from django.contrib.auth.models import User
 
 class Category(models.Model):
     name = models.CharField(max_length=100)
@@ -49,3 +50,68 @@ class Product(models.Model):
             product_data["discount"] = self.discount
 
         return product_data
+
+class Order(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('processed', 'Processed'),
+        ('shipped', 'Shipped'),
+        ('delivered', 'Delivered')
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    payment_method = models.CharField(max_length=50)
+    total_price = models.DecimalField(max_digits=10, decimal_places=2)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def to_dict(self):
+        return {
+            "user": self.user,
+            "payment_method": self.payment_method,
+            "total_price": self.total_price,
+            "status": self.status,
+            "created_at": self.created_at
+        }
+
+class ShippingInfo(models.Model):
+    order = models.ForeignKey(Order, related_name='shipping_info', on_delete=models.CASCADE)
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
+    email = models.EmailField()
+    phone = models.CharField(max_length=15)
+    address = models.TextField()
+    city = models.CharField(max_length=100)
+    state = models.CharField(max_length=100)
+    zip_code = models.CharField(max_length=20)
+    country = models.CharField(max_length=100, default='Kazakhstan')
+
+    def to_dict(self):
+        return{
+            "order": self.order,
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+            "email": self.email,
+            "phone": self.phone,
+            "address": self.address,
+            "city": self.city,
+            "state": self.state,
+            "zip_code": self.zip_code,
+            "country": self.country
+        }
+
+class OrderItem(models.Model):
+    order = models.ForeignKey(Order, related_name='items', on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField()
+    selected_color = models.CharField(max_length=50, blank=True, null=True)
+    selected_size = models.CharField(max_length=50, blank=True, null=True)
+
+    def to_dict(self):
+        return{
+            "order": self.order,
+            "product": self.product,
+            "quantity": self.quantity,
+            "selected_color": self.selected_color,
+            "selected_size": self.selected_size
+        }

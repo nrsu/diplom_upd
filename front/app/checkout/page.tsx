@@ -45,8 +45,63 @@ export default function CheckoutPage() {
   }
 
   const shipping = 5.99
-  const tax = cartTotal * 0.07
-  const total = cartTotal + shipping + tax
+  //const tax = cartTotal * 0.07
+  const total = cartTotal + shipping //+ tax
+
+  const submitOrder = async () => {
+    try {
+      const orderData = {
+        total_price: total.toFixed(2),
+        payment_method: paymentMethod,
+        items: cart.map((item) => ({
+          product_id: item.id,
+          quantity: item.quantity || 1,
+          selected_color: item.selectedColor || null,
+          selected_size: item.selectedSize || null,
+        })),
+        shipping: {
+          first_name: shippingInfo.firstName,
+          last_name: shippingInfo.lastName,
+          email: shippingInfo.email,
+          phone: shippingInfo.phone,
+          address: shippingInfo.address,
+          city: shippingInfo.city,
+          state: shippingInfo.state,
+          zip_code: shippingInfo.zipCode,
+          country: shippingInfo.country,
+        },
+      };
+      const tokens = JSON.parse(localStorage.getItem("tokens") || "{}");
+      const response = await fetch("http://127.0.0.1:8000/api/order/create/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${tokens.access}`
+        },
+        body: JSON.stringify(orderData),
+      });
+  
+      if (!response.ok) {
+        throw new Error("Ошибка при оформлении заказа");
+      }
+  
+      toast({
+        title: "Заказ оформлен!",
+        description: "Ваш заказ успешно создан.",
+      });
+  
+      clearCart();
+      router.push("/checkout/success");
+    } catch (error) {
+      toast({
+        title: "Ошибка",
+        //description: error.message || "Не удалось оформить заказ",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -63,11 +118,12 @@ export default function CheckoutPage() {
     setIsSubmitting(true)
 
     // Simulate API call to process order
-    setTimeout(() => {
+    await submitOrder();
+    /*setTimeout(() => {
       clearCart()
       setIsSubmitting(false)
       router.push("/checkout/success")
-    }, 1500)
+    }, 1500)*/
   }
 
   return (
@@ -327,10 +383,10 @@ export default function CheckoutPage() {
                   <span className="text-muted-foreground">Shipping</span>
                   <span>${shipping.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between">
+                {/*<div className="flex justify-between">
                   <span className="text-muted-foreground">Tax</span>
                   <span>${tax.toFixed(2)}</span>
-                </div>
+                </div>*/}
                 <Separator />
                 <div className="flex justify-between font-bold">
                   <span>Total</span>
