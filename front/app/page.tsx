@@ -10,9 +10,9 @@ export default function Home() {
     <div className="container mx-auto px-4 py-8">
       <section className="mb-12">
         <div className="relative rounded-lg overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-black/50 z-10" />
+          <div className="absolute inset-0 " />
           <img
-            src="/placeholder.svg?height=500&width=1200"
+            src="https://png.pngtree.com/background/20220729/original/pngtree-ecommerce-banner-planning-segmentation-selection-picture-image_1859485.jpg"
             alt="Hero banner"
             className="w-full h-[500px] object-cover"
           />
@@ -92,25 +92,25 @@ const categories = [
     id: 1,
     name: "Electronics",
     slug: "electronics",
-    image: "/placeholder.svg?height=200&width=300",
+    image: "https://www.creativefabrica.com/wp-content/uploads/2020/06/15/cpu-black-and-white-line-icon-Graphics-4364378-1.jpg",
   },
   {
     id: 2,
     name: "Clothing",
     slug: "clothing",
-    image: "/placeholder.svg?height=200&width=300",
+    image: "https://png.pngtree.com/png-vector/20230527/ourmid/pngtree-clothes-icon-vector-image-concept-dress-outline-vector-png-image_52306436.jpg",
   },
   {
     id: 3,
     name: "Home & Kitchen",
     slug: "home-kitchen",
-    image: "/placeholder.svg?height=200&width=300",
+    image: "https://png.pngtree.com/png-vector/20190226/ourmid/pngtree-cooking-and-kitchen-icon-png-image_719697.jpg",
   },
   {
     id: 4,
     name: "Beauty",
     slug: "beauty",
-    image: "/placeholder.svg?height=200&width=300",
+    image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS0xnjGy1SfTcyJ9Yg7Y6MooAj_qFEhNKWx6AgYx8-VT47OBAHQCsvqOxLjZ5BdPNsug4Y&usqp=CAU",
   },
 ]
 
