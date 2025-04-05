@@ -29,7 +29,7 @@ export function NavBar() {
   const { user, isAuthenticated, logout } = useAuth()
 
   const routes = [
-    { href: "/", label: "ZhibekZholy" },
+    { href: "/", label: "Home" },
     { href: "/product-list", label: "Products" },
     { href: "/orders", label: "Orders", requiresAuth: true },
   ]
@@ -38,7 +38,7 @@ export function NavBar() {
   const filteredRoutes = routes.filter((route) => !route.requiresAuth || (route.requiresAuth && isAuthenticated))
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center justify-between px-6 py-4">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">
         <div className="mr-4 md:hidden">
           <Sheet>
@@ -65,9 +65,9 @@ export function NavBar() {
           </Sheet>
         </div>
 
-        {/* <Link href="/" className="mr-6 flex items-center space-x-2">
-          <span className="font-bold text-xl">STORE</span>
-        </Link> */}
+        <Link href="/" className="mr-6 flex items-center space-x-2">
+          <span className="font-bold text-xl">ZHIBEKZHOLY</span>
+        </Link>
 
         <nav className="hidden md:flex items-center space-x-6 lg:space-x-8">
           {filteredRoutes.map((route) => (

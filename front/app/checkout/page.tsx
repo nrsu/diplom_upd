@@ -34,7 +34,7 @@ export default function CheckoutPage() {
     city: "",
     state: "",
     zipCode: "",
-    country: "United States",
+    country: "Kazakhstan",
   })
 
   const [paymentMethod, setPaymentMethod] = useState("credit-card")
@@ -115,6 +115,7 @@ export default function CheckoutPage() {
       return
     }
 
+    
     setIsSubmitting(true)
 
     // Simulate API call to process order

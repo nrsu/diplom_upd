@@ -25,7 +25,10 @@ class Product(models.Model):
     image = models.ImageField(upload_to='product_images/', null=True, blank=True)  # Используем ImageField
     colors = models.JSONField()
     sizes = models.JSONField()
-    description = models.TextField()
+    description = models.TextField(default="test")
+    dimensions = models.TextField(default="test")
+    materials = models.TextField(default="test")
+    in_the_box = models.TextField(default="test")
 
     def __str__(self):
         return self.name
@@ -49,6 +52,9 @@ class Product(models.Model):
             "colors": self.colors,
             "sizes": self.sizes,
             "description": self.description,
+            "dimensions": self.dimensions,
+            "materials": self.materials,
+            "in_the_box": self.in_the_box,
         }
 
         if self.discount > 0:
@@ -120,4 +126,24 @@ class OrderItem(models.Model):
             "quantity": self.quantity,
             "selected_color": self.selected_color,
             "selected_size": self.selected_size
+        }
+
+class Review(models.Model):
+    product = models.ForeignKey('Product', related_name='reviews', on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    rating = models.PositiveIntegerField()
+    text = models.TextField()
+    helpful_count = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "product_id": self.product.id,
+            "user_name": self.user.first_name + " " + self.user.last_name,
+            "user_avatar": "/placeholder.svg?height=40&width=40",  # Можно заменить на реальный URL
+            "rating": self.rating,
+            "date": self.created_at.strftime("%Y-%m-%d"),
+            "text": self.text,
+            "helpful_count": self.helpful_count,
         }

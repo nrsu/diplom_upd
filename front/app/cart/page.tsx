@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { Trash2, Plus, Minus, ArrowRight } from "lucide-react"
-
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
@@ -22,6 +22,23 @@ export default function CartPage() {
       title: "Removed from cart",
       description: `${name} has been removed from your cart.`,
     })
+  }
+
+  const router = useRouter()
+
+  const handleCheckout = () => {
+    const tokens = JSON.parse(localStorage.getItem("tokens") || "{}")
+  
+    if (!tokens.access) {
+      toast({
+        title: "Вы не авторизованы",
+        description: "Войдите в аккаунт, чтобы оформить заказ.",
+        variant: "destructive",
+      })
+      router.push("/login")
+    } else {
+      router.push("/checkout")
+    }
   }
 
   const shipping = 5.99
@@ -165,7 +182,7 @@ export default function CartPage() {
                 </div>
               </CardContent>
               <CardFooter>
-                <Button className="w-full" size="lg" asChild>
+                <Button className="w-full" size="lg" onClick={handleCheckout}>
                   <Link href="/checkout">
                     Checkout
                     <ArrowRight className="ml-2 h-4 w-4" />

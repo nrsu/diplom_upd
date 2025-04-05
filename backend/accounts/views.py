@@ -161,6 +161,7 @@ def get_categories(request):
     categories = Category.objects.all()
     return JsonResponse([category.to_dict() for category in categories], safe=False)
 
+@csrf_exempt
 def get_product_details(request, product_id):
     product = get_object_or_404(Product, id=product_id)
     return JsonResponse(product.to_dict(), safe=False)
@@ -295,3 +296,65 @@ def get_order(request):
         })
 
     return Response(order_data, status=status.HTTP_200_OK)
+
+def get_review(request, product_id):
+    reviews = Review.objects.filter(product_id=product_id)
+    return JsonResponse([review.to_dict() for review in reviews], safe=False)
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def post_review(request, product_id):
+
+    data = json.loads(request.body)
+    rating = data.get("rating")
+    text = data.get("text")
+
+    user = request.user
+
+    # Проверяем, существует ли продукт
+    try:
+        product = Product.objects.get(id=product_id)
+    except Product.DoesNotExist:
+        return JsonResponse({"error": "Product not found"}, status=404)
+
+    # Проверяем, оставлял ли пользователь уже отзыв на этот товар
+    if Review.objects.filter(product=product, user=user).exists():
+        return JsonResponse({"error": "You have already submitted a review for this product."}, status=403)
+
+    # Создаём новый отзыв
+    review = Review.objects.create(
+        product=product,
+        user=user,
+        rating=rating,
+        text=text
+    )
+
+    return JsonResponse({
+        "message": "Review submitted successfully",
+        "review": {
+            "id": review.id,
+            "user": user.username,
+            "rating": review.rating,
+            "text": review.text,
+            "helpful_count": review.helpful_count,
+            "created_at": review.created_at.strftime("%Y-%m-%d %H:%M:%S")
+        }
+    }, status=201)
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_password(request):
+    user = request.user
+    data = request.data
+    current_password = data.get('currentPassword')
+    new_password = data.get('newPassword')
+
+    if not current_password or not new_password:
+        return Response({'error': 'Текущий и новый пароли обязательны'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not user.check_password(current_password):
+        return Response({'error': 'Неверный текущий пароль'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    user.set_password(new_password)
+    user.save()
+    return Response({'message': 'Пароль успешно обновлен'}, status=status.HTTP_200_OK)
