@@ -22,6 +22,17 @@ interface ProductDetailsPageProps {
   }
 }
 
+interface Review {
+  id: number
+  productId: number
+  userName: string
+  userAvatar: string
+  rating: number
+  date: string
+  text: string
+  helpfulCount: number
+}
+
 export default function ProductDetailsPage({ params }: ProductDetailsPageProps) {
   const productId = Number.parseInt(params.id)
   const [quantity, setQuantity] = useState(1)
@@ -33,6 +44,26 @@ export default function ProductDetailsPage({ params }: ProductDetailsPageProps) 
 
   const [selectedColor, setSelectedColor] = useState("")
   const [selectedSize, setSelectedSize] = useState("")
+
+
+  const [reviews, setReviews] = useState<Review[]>([])
+  const [reviewText, setReviewText] = useState("")
+  const [rating, setRating] = useState(0)
+  const [hoveredRating, setHoveredRating] = useState(0)
+
+    useEffect(() => {
+      fetchReviews()
+    }, [productId])
+  
+  
+    const fetchReviews = async () => {
+      try {
+        const response = await productsAPI.getReviews(productId);
+        setReviews(response);
+      } catch (error) {
+        console.error("Failed to load reviews", error);
+      }
+    };
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -84,6 +115,11 @@ export default function ProductDetailsPage({ params }: ProductDetailsPageProps) 
   }
 
   const hasMultipleSizes = product.sizes && product.sizes.length > 1
+
+  const averageRating =
+  reviews.length > 0
+    ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
+    : 0;
 
   const handleAddToCart = () => {
     const options: ProductVariant = {}
@@ -159,15 +195,17 @@ export default function ProductDetailsPage({ params }: ProductDetailsPageProps) 
             <h1 className="text-3xl font-bold">{product.name}</h1>
 
             <div className="flex items-center mt-2">
-              <div className="flex">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star
-                    key={star}
-                    className={`h-5 w-5 ${star <= 4 ? "fill-primary text-primary" : "fill-muted text-muted-foreground"}`}
-                  />
-                ))}
-              </div>
-              <span className="ml-2 text-sm text-muted-foreground">4.0 (24 reviews)</span>
+        <div className="flex">
+  {[1, 2, 3, 4, 5].map((star) => (
+    <Star
+      key={star}
+      className={`h-5 w-5 ${
+        star <= Math.round(averageRating) ? "fill-primary text-primary" : "fill-muted text-muted-foreground"
+      }`}
+    />
+  ))}
+</div>
+              <span className="ml-2 text-sm text-muted-foreground">{averageRating} ({reviews.length} reviews)</span>
             </div>
 
             <div className="mt-4 flex items-center">
@@ -314,26 +352,29 @@ export default function ProductDetailsPage({ params }: ProductDetailsPageProps) 
               <div className="border rounded-lg p-4">
                 <h4 className="font-medium mb-2">Dimensions</h4>
                 <ul className="space-y-1 text-sm text-muted-foreground">
-                  <li>Height: 10 cm</li>
+                  {/* <li>Height: 10 cm</li>
                   <li>Width: 15 cm</li>
                   <li>Depth: 5 cm</li>
-                  <li>Weight: 300g</li>
+                  <li>Weight: 300g</li> */}
+                  {product.dimensions}
                 </ul>
               </div>
               <div className="border rounded-lg p-4">
                 <h4 className="font-medium mb-2">Materials</h4>
                 <ul className="space-y-1 text-sm text-muted-foreground">
-                  <li>Aluminum</li>
+                  {/* <li>Aluminum</li>
                   <li>Plastic</li>
-                  <li>Silicone</li>
+                  <li>Silicone</li> */}
+                  {product.materials}
                 </ul>
               </div>
               <div className="border rounded-lg p-4">
                 <h4 className="font-medium mb-2">In the Box</h4>
                 <ul className="space-y-1 text-sm text-muted-foreground">
-                  <li>Main product</li>
+                  {/* <li>Main product</li>
                   <li>USB cable</li>
-                  <li>User manual</li>
+                  <li>User manual</li> */}
+                  {product.in_the_box}
                 </ul>
               </div>
               <div className="border rounded-lg p-4">

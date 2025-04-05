@@ -1,6 +1,6 @@
 import { Suspense } from "react"
 import { SlidersHorizontal } from "lucide-react"
-
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -20,7 +20,9 @@ export default function ProductListPage({
   //const [categories, setCategories] = useState([]);
   const search = typeof searchParams.search === "string" ? searchParams.search : ""
   const category = typeof searchParams.category === "string" ? searchParams.category : ""
+  
 
+  
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex flex-col md:flex-row justify-between items-start gap-6 mb-8">
@@ -156,7 +158,6 @@ const categories = [
   { id: 2, name: "Clothing" },
   { id: 3, name: "Home & Kitchen" },
   { id: 4, name: "Beauty" },
-  { id: 5, name: "Sports" },
 ]
 //const categories = await productsAPI.getCategories();
 

@@ -62,6 +62,17 @@ const getAuthToken = () => {
     colors: string[];
     sizes: string[];
   }
+
+  interface Review{
+    id: number;
+    productId: number;
+    userName: string;
+    userAvatar: string;
+    rating: number;
+    date: string;
+    text: string;
+    helpfulCount: number;
+  }
 // Products API
 export const productsAPI = {
   getAll: async (category?: string, search?: string): Promise<Product[]> => {
@@ -100,6 +111,17 @@ export const productsAPI = {
     
     return await response.json(); // Предполагаем, что сервер вернет массив строк ["Electronics", "Clothing", ...]
   },
+  getReviews: async (id: number) =>{
+    const response = await fetch(`http://127.0.0.1:8000/api/review/${id}`);
+    if (!response.ok) {
+      throw new Error("Ошибка при загрузке продукта");
+    }
+
+    // Парсим JSON-ответ
+    const reviews: Review[] = await response.json();
+
+    return reviews;
+  }, 
 
   getById: async (id: number) => {
     // In a real app, this would be an API call

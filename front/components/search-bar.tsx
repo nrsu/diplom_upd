@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Search } from "lucide-react"
 
 import { Input } from "@/components/ui/input"
@@ -16,12 +16,19 @@ interface SearchBarProps {
 export function SearchBar({ className = "" }: SearchBarProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
+    const params = new URLSearchParams(searchParams.toString())
     if (searchQuery.trim()) {
-      router.push(`/product-list?search=${encodeURIComponent(searchQuery)}`)
+      // router.push(`/product-list?search=${encodeURIComponent(searchQuery)}`)
+      params.set("search", searchQuery)
     }
+    else{
+      params.delete("search")
+    }
+    router.push(`/product-list?${params.toString()}`)
   }
 
   return (

@@ -1,48 +1,104 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { productsAPI } from "@/services/api"
+import { useState, useEffect } from "react"
 import { Star, ThumbsUp, ThumbsDown } from "lucide-react"
-
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import Modal from "./modal"
 
 interface ProductReviewsProps {
   productId: number
 }
 
+interface Review {
+  id: number
+  productId: number
+  userName: string
+  userAvatar: string
+  rating: number
+  date: string
+  text: string
+  helpfulCount: number
+}
+
 export default function ProductReviews({ productId }: ProductReviewsProps) {
+  const [reviews, setReviews] = useState<Review[]>([])
   const [reviewText, setReviewText] = useState("")
   const [rating, setRating] = useState(0)
   const [hoveredRating, setHoveredRating] = useState(0)
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
 
-  // In a real app, we would fetch reviews for this product
-  const reviews = mockReviews.filter((review) => review.productId === productId)
+  useEffect(() => {
+    fetchReviews()
+  }, [productId])
 
-  const handleSubmitReview = (e: React.FormEvent) => {
+
+  const fetchReviews = async () => {
+    try {
+      const response = await productsAPI.getReviews(productId);
+      setReviews(response);
+    } catch (error) {
+      console.error("Failed to load reviews", error);
+    }
+  };
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault()
-    // In a real app, we would submit the review to an API
-    alert(`Review submitted: ${rating} stars, "${reviewText}"`)
-    setReviewText("")
-    setRating(0)
+
+    try {
+      const tokens = JSON.parse(localStorage.getItem("tokens") || "{}");
+      const response = await fetch(`http://127.0.0.1:8000/api/post-review/${productId}/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${tokens.access}`,
+        },
+        body: JSON.stringify({
+          rating,
+          text: reviewText
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        setErrorMessage(errorData.message || "You have already submitted a review for this product.");
+        setIsErrorModalOpen(true);
+        throw new Error("Failed to submit review");
+      }
+      
+      setReviewText("");
+      setRating(0)
+      fetchReviews()
+
+    } catch (error) {
+      console.error("Error submitting review:", error)
+    }
   }
+  const averageRating =
+  reviews.length > 0
+    ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
+    : 0;
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-medium">Customer Reviews</h3>
         <div className="flex items-center">
-          <div className="flex">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <Star
-                key={star}
-                className={`h-5 w-5 ${star <= 4 ? "fill-primary text-primary" : "fill-muted text-muted-foreground"}`}
-              />
-            ))}
-          </div>
+        <div className="flex">
+  {[1, 2, 3, 4, 5].map((star) => (
+    <Star
+      key={star}
+      className={`h-5 w-5 ${
+        star <= Math.round(averageRating) ? "fill-primary text-primary" : "fill-muted text-muted-foreground"
+      }`}
+    />
+  ))}
+</div>
           <span className="ml-2 text-sm text-muted-foreground">Based on {reviews.length} reviews</span>
         </div>
       </div>
@@ -91,12 +147,12 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
             <div key={review.id} className="space-y-2">
               <div className="flex items-start">
                 <Avatar className="h-10 w-10 mr-3">
-                  <AvatarImage src={review.userAvatar} alt={review.userName} />
-                  <AvatarFallback>{review.userName.charAt(0)}</AvatarFallback>
+                  <AvatarImage src={review.user_avatar} alt={review.user_name} />
+                  {/* <AvatarFallback>{review.userName.charAt(0)}</AvatarFallback> */}
                 </Avatar>
                 <div className="flex-1">
                   <div className="flex items-center">
-                    <h4 className="font-medium">{review.userName}</h4>
+                    <h4 className="font-medium">{review.user_name}</h4>
                     <span className="text-xs text-muted-foreground ml-2">{review.date}</span>
                   </div>
                   <div className="flex my-1">
@@ -113,7 +169,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
                   <div className="flex items-center mt-2">
                     <button className="flex items-center text-xs text-muted-foreground hover:text-foreground mr-4">
                       <ThumbsUp className="h-3 w-3 mr-1" />
-                      Helpful ({review.helpfulCount})
+                      Helpful ({review.helpful_count})
                     </button>
                     <button className="flex items-center text-xs text-muted-foreground hover:text-foreground">
                       <ThumbsDown className="h-3 w-3 mr-1" />
@@ -130,50 +186,55 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
           </div>
         )}
       </div>
+
+      <Modal isOpen={isErrorModalOpen} onClose={() => setIsErrorModalOpen(false)} title="Error">
+        <p>{errorMessage}</p>
+      </Modal>
     </div>
   )
 }
 
-const mockReviews = [
-  {
-    id: 1,
-    productId: 1,
-    userName: "John Doe",
-    userAvatar: "/placeholder.svg?height=40&width=40",
-    rating: 5,
-    date: "2 months ago",
-    text: "These headphones are amazing! The sound quality is excellent and they're very comfortable to wear for long periods. Battery life is impressive too.",
-    helpfulCount: 12,
-  },
-  {
-    id: 2,
-    productId: 1,
-    userName: "Jane Smith",
-    userAvatar: "/placeholder.svg?height=40&width=40",
-    rating: 4,
-    date: "1 month ago",
-    text: "Great headphones overall. The noise cancellation works well, but I wish the ear cups were a bit larger. Still, I'm very happy with my purchase.",
-    helpfulCount: 8,
-  },
-  {
-    id: 3,
-    productId: 2,
-    userName: "Mike Johnson",
-    userAvatar: "/placeholder.svg?height=40&width=40",
-    rating: 5,
-    date: "3 weeks ago",
-    text: "This t-shirt is so comfortable! The fabric is soft and breathable, and it fits perfectly. I've already ordered two more in different colors.",
-    helpfulCount: 5,
-  },
-  {
-    id: 4,
-    productId: 3,
-    userName: "Sarah Williams",
-    userAvatar: "/placeholder.svg?height=40&width=40",
-    rating: 4,
-    date: "2 weeks ago",
-    text: "The smart watch has a lot of great features and the battery lasts longer than I expected. The only downside is that the screen is a bit small for my liking.",
-    helpfulCount: 3,
-  },
-]
+
+// const mockReviews = [
+//   {
+//     id: 1,
+//     productId: 1,
+//     userName: "John Doe",
+//     userAvatar: "/placeholder.svg?height=40&width=40",
+//     rating: 5,
+//     date: "2 months ago",
+//     text: " headphones are amazing! The sound quality is excellent and they're very comfortable to wear for long periods. Battery life is impressive too.",
+//     helpfulCount: 12,
+//   },
+//   {
+//     id: 2,
+//     productId: 1,
+//     userName: "Jane Smith",
+//     userAvatar: "/placeholder.svg?height=40&width=40",
+//     rating: 4,
+//     date: "1 month ago",
+//     text: "Great headphones overall. The noise cancellation works well, but I wish the ear cups were a bit larger. Still, I'm very happy with my purchase.",
+//     helpfulCount: 8,
+//   },
+//   {
+//     id: 3,
+//     productId: 2,
+//     userName: "Mike Johnson",
+//     userAvatar: "/placeholder.svg?height=40&width=40",
+//     rating: 5,
+//     date: "3 weeks ago",
+//     text: "This t-shirt is so comfortable! The fabric is soft and breathable, and it fits perfectly. I've already ordered two more in different colors.",
+//     helpfulCount: 5,
+//   },
+//   {
+//     id: 4,
+//     productId: 3,
+//     userName: "Sarah Williams",
+//     userAvatar: "/placeholder.svg?height=40&width=40",
+//     rating: 4,
+//     date: "2 weeks ago",
+//     text: "The smart watch has a lot of great features and the battery lasts longer than I expected. The only downside is that the screen is a bit small for my liking.",
+//     helpfulCount: 3,
+//   },
+// ]
 
