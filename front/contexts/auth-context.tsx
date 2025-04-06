@@ -8,6 +8,7 @@ export interface User {
   email: string;
   firstName?: string;
   lastName?: string;
+  profileImage?: string;
 }
 
 interface AuthContextType {
@@ -66,18 +67,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
+      
   
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Ошибка входа");
   
+      const picRes = await fetch("http://127.0.0.1:8000/api/profile-picture/", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${data.tokens.access}`,
+        },
+      });
+      const profileData = await picRes.json();
+      
+
       const userData = {
         ...data.user,
-        token: data.tokens.access, // ✅ Добавляем токен
+        token: data.tokens.access,
+        image: profileData.image // ✅ Добавляем токен
       };
   
       localStorage.setItem("user", JSON.stringify(userData));
       localStorage.setItem("tokens", JSON.stringify(data.tokens));
-  
+      
+
       console.log("Сохранённые токены:", localStorage.getItem("tokens"));
 
       setUser(userData);
@@ -147,10 +160,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
         body: JSON.stringify(profileData),
       });
-      await getUserProfile();
+      
       //profileData.username=username
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Ошибка обновления профиля");
+      await getUserProfile();
     } catch (err) {
       if (err instanceof Error) {
         console.error("Ошибка:", err.message);
@@ -175,7 +189,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!res.ok) throw new Error("Ошибка загрузки профиля");
   
       const userData = await res.json();
-  
+
+      
+
+      
       // ✅ Обновляем контекст и localStorage
       setUser(userData);
       localStorage.setItem("user", JSON.stringify(userData));

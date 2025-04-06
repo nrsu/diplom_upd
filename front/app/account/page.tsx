@@ -29,13 +29,58 @@ export default function AccountPage() {
 function AccountSettings() {
   const { user, isLoading, updateUserProfile, updatePassword } = useAuth()
   const router = useRouter()
+  const [file, setFile] = useState<File | null>(null);
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      handleProfileImageSubmit(selectedFile);
+    }
+  };
 
+  const handleProfileImageSubmit = async (selectedFile: File) => {
+    // e.preventDefault();
+    // if (!file) return;
   
+    // setIsSubmitting(true);
+    const formData = new FormData();
+    formData.append("image", selectedFile);
+  
+    try {
+      // Отправляем POST-запрос на сервер с изображением
+      const tokens = JSON.parse(localStorage.getItem("tokens") || "{}");
+      const response = await fetch("http://127.0.0.1:8000/api/upload-profile-picture/", {
+        method: "POST",
+        body: formData,
+        headers: {
+          Authorization: `Bearer ${tokens.access}`, // или используйте актуальный способ авторизации
+        },
+      });
+  
+      if (!response.ok) {
+        throw new Error("Failed to upload image");
+      }
+  
+      // Получаем обновленный URL изображения
+      const data = await response.json();
+      setProfileData((prev) => ({ ...prev, profileImage: data.image }));
+      
+      toast({
+        title: "Picture updated",
+        description: "Your picture has been updated successfully.",
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update avatar");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const [profileData, setProfileData] = useState({
     firstName: "",
     lastName: "",
     email: "",
+    profileImage: ""
   })
 
   useEffect(() => {
@@ -60,10 +105,12 @@ function AccountSettings() {
         firstName: user.first_name || "",
         lastName: user.last_name || "",
         email: user.email,
-        username: user.username
+        username: user.username,
+        profileImage: user.image
       })
     }
   }, [user])
+
 
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -162,13 +209,32 @@ function AccountSettings() {
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-center mb-6">
                   <div className="relative">
-                    <div className="h-24 w-24 rounded-full bg-muted flex items-center justify-center">
-                      <User className="h-12 w-12 text-muted-foreground" />
-                    </div>
-                    <Button size="sm" className="absolute bottom-0 right-0 rounded-full h-8 w-8 p-0" type="button">
-                      <span className="sr-only">Change avatar</span>
-                      <span className="text-xl">+</span>
-                    </Button>
+                  <div className="h-24 w-24 rounded-full bg-muted flex items-center justify-center">
+    {profileData.profileImage ? (
+      <img
+        src={`http://127.0.0.1:8000${profileData.profileImage}`}
+        alt="Profile"
+        className="h-24 w-24 object-cover rounded-full"
+      />
+    ) : (
+      <User className="h-12 w-12 text-muted-foreground" />
+    )}
+  </div>
+  <Button
+  size="sm"
+  className="absolute bottom-0 right-0 rounded-full h-8 w-8 p-0"
+  type="button"
+  onClick={() => document.getElementById("avatar-upload")?.click()}
+>
+  <span className="sr-only">Change avatar</span>
+  <span className="text-xl">+</span>
+</Button>
+<input
+  type="file"
+  id="avatar-upload"
+  className="hidden"
+  onChange={handleFileChange}
+/>
                   </div>
                 </div>
 

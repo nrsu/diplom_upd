@@ -1,3 +1,4 @@
+"use client"
 import { Suspense } from "react"
 import { SlidersHorizontal } from "lucide-react"
 import { useState } from "react"
@@ -11,7 +12,7 @@ import { SearchBar } from "@/components/search-bar"
 import ProductGrid from "./product-grid"
 import { productsAPI } from "@/services/api";
 //import { useState, useEffect } from "react";
-
+import Link from "next/link"
 export default function ProductListPage({
   searchParams,
 }: {
@@ -20,8 +21,30 @@ export default function ProductListPage({
   //const [categories, setCategories] = useState([]);
   const search = typeof searchParams.search === "string" ? searchParams.search : ""
   const category = typeof searchParams.category === "string" ? searchParams.category : ""
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedPrices, setSelectedPrices] = useState<string[]>([]);
+  const sortOptions = [
+    { value: "relevance", label: "Relevance" },
+    { value: "trending", label: "Trending" },
+    { value: "latest", label: "Latest Arrivals" },
+    { value: "priceLowHigh", label: "Price: Low to High" },
+    { value: "priceHighLow", label: "Price: High to Low" },
+  ];
   
-
+  const [sortBy, setSortBy] = useState("relevance");
+  
+  const toggleCategory = (id: string) => {
+    setSelectedCategories((prev) =>
+      prev.includes(id) ? prev.filter((cat) => cat !== id) : [...prev, id]
+    );
+  };
+  
+  const togglePriceRange = (id: string) => {
+    setSelectedPrices((prev) =>
+      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
+    );
+  };
+  
   
   return (
     <div className="container mx-auto px-4 py-8">
@@ -29,9 +52,28 @@ export default function ProductListPage({
         <div>
           <h1 className="text-3xl font-bold">Products</h1>
           {category && <p className="text-muted-foreground mt-1">Category: {category}</p>}
-          {search && <p className="text-muted-foreground mt-1">Search results for: {search}</p>}
+          {/* <Link href="/product-list">
+    <Button className="ml-4">Go to Product List</Button>
+  </Link> */}
+
         </div>
-        <SearchBar className="w-full md:w-auto" />
+        <div className="mt-2">
+  <label htmlFor="sort" className="block text-sm font-medium text-muted-foreground mb-1">
+    Sort by
+  </label>
+  <select
+    id="sort"
+    value={sortBy}
+    onChange={(e) => setSortBy(e.target.value)}
+    className="border rounded-md px-3 py-1 text-sm"
+  >
+    {sortOptions.map((option) => (
+      <option key={option.value} value={option.value}>
+        {option.label}
+      </option>
+    ))}
+  </select>
+</div>
       </div>
 
       <div className="flex flex-col md:flex-row gap-6">
@@ -91,7 +133,9 @@ export default function ProductListPage({
                 <div className="space-y-2">
                   {categories.map((category) => (
                     <div key={category.id} className="flex items-center space-x-2">
-                      <Checkbox id={`category-${category.id}`} />
+                      <Checkbox id={`category-${category.id}`} 
+                        checked={selectedCategories.includes(category.name)}
+                        onCheckedChange={() => toggleCategory(category.name)}/>
                       <label
                         htmlFor={`category-${category.id}`}
                         className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
@@ -108,7 +152,9 @@ export default function ProductListPage({
                 <div className="space-y-2">
                   {priceRanges.map((range) => (
                     <div key={range.id} className="flex items-center space-x-2">
-                      <Checkbox id={`price-${range.id}`} />
+                      <Checkbox id={`price-${range.id}`} 
+                        checked={selectedPrices.includes(String(range.id))}
+                        onCheckedChange={() => togglePriceRange(String(range.id))}/>
                       <label
                         htmlFor={`price-${range.id}`}
                         className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
@@ -126,7 +172,7 @@ export default function ProductListPage({
         {/* Product grid */}
         <div className="flex-1">
           <Suspense fallback={<ProductGridSkeleton />}>
-            <ProductGrid search={search} category={category} />
+          <ProductGrid search={search} category={category} sortBy={sortBy} selectedCategories={selectedCategories} selectedPrices = {selectedPrices} />
           </Suspense>
         </div>
       </div>

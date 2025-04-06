@@ -60,7 +60,7 @@ class Product(models.Model):
 class Order(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pending'),
-        ('processed', 'Processed'),
+        ('processing', 'Processing'),
         ('shipped', 'Shipped'),
         ('delivered', 'Delivered')
     ]
@@ -131,13 +131,27 @@ class Review(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def to_dict(self):
+        profile = getattr(self.user, "profile", None)
+        avatar_url = profile.image.url if profile and profile.image else "/placeholder.svg"
         return {
             "id": self.id,
             "product_id": self.product.id,
             "user_name": self.user.first_name + " " + self.user.last_name,
-            "user_avatar": "/placeholder.svg?height=40&width=40",  # Можно заменить на реальный URL
+            "user_avatar": avatar_url,  # Можно заменить на реальный URL
             "rating": self.rating,
             "date": self.created_at.strftime("%Y-%m-%d"),
             "text": self.text,
             "helpful_count": self.helpful_count,
         }
+
+class ProfilePicture(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')  # Связь с пользователем
+    image = models.ImageField(upload_to='profile_pics/', default='profile_pics/default.jpg')  # Путь для хранения изображения
+
+    def to_dict(self):
+        return{
+            "user_id": user.id,
+            "image": self.image
+        }
+    
+

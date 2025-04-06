@@ -1,14 +1,18 @@
+"use client"
 import Link from "next/link"
 import { Check, ArrowRight } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-
+import { useSearchParams } from "next/navigation";
 export default function OrderSuccessPage() {
   // Generate a random order number
-  const orderNumber = `ORD-${Math.floor(Math.random() * 10000)
-    .toString()
-    .padStart(5, "0")}`
+  // const orderNumber = `ORD-${Math.floor(Math.random() * 10000)
+  //   .toString()
+  //   .padStart(5, "0")}`
+  //const router = useRouter();
+  const searchParams = useSearchParams();
+  const orderId = searchParams.get('orderId');
 
   return (
     <div className="container mx-auto px-4 py-16 max-w-md">
@@ -26,7 +30,7 @@ export default function OrderSuccessPage() {
             </p>
             <div className="border rounded-lg p-4 bg-muted/50">
               <div className="text-sm text-muted-foreground mb-1">Order Number</div>
-              <div className="font-medium text-lg">{orderNumber}</div>
+              <div className="font-medium text-lg">#ORD-{orderId}</div>
             </div>
             <p className="text-sm text-muted-foreground">
               A confirmation email has been sent to your email address with all the details of your order.

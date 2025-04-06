@@ -91,25 +91,25 @@ const categories = [
   {
     id: 1,
     name: "Electronics",
-    slug: "electronics",
+    slug: "Electronics",
     image: "/placeholder.svg?height=200&width=300",
   },
   {
     id: 2,
     name: "Clothing",
-    slug: "clothing",
+    slug: "Clothing",
     image: "/placeholder.svg?height=200&width=300",
   },
   {
     id: 3,
     name: "Home & Kitchen",
-    slug: "home-kitchen",
+    slug: "Home-Kitchen",
     image: "/placeholder.svg?height=200&width=300",
   },
   {
     id: 4,
     name: "Beauty",
-    slug: "beauty",
+    slug: "Beauty",
     image: "/placeholder.svg?height=200&width=300",
   },
 ]

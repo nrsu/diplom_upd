@@ -84,14 +84,15 @@ export default function CheckoutPage() {
       if (!response.ok) {
         throw new Error("Ошибка при оформлении заказа");
       }
-  
+      const data = await response.json(); 
+      const orderId = data.id;
       toast({
         title: "Заказ оформлен!",
         description: "Ваш заказ успешно создан.",
       });
   
       clearCart();
-      router.push("/checkout/success");
+      router.push(`/checkout/success?orderId=${orderId}`);
     } catch (error) {
       toast({
         title: "Ошибка",

@@ -15,9 +15,12 @@ import { productsAPI } from "@/services/api"
 interface ProductGridProps {
   search?: string
   category?: string
+  sortBy?: string
+  selectedCategories?: string[]
+  selectedPrices?: string[]
 }
 
-export default function ProductGrid({ search, category }: ProductGridProps) {
+export default function ProductGrid({ search, category, sortBy, selectedCategories =[], selectedPrices=[]}: ProductGridProps) {
   const { addToCart, addToWishlist, removeFromWishlist, isInWishlist } = useStore()
   const [products, setProducts] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -30,7 +33,44 @@ export default function ProductGrid({ search, category }: ProductGridProps) {
 
       try {
         const data = await productsAPI.getAll(category, search)
-        setProducts(data)
+        if (sortBy === "priceLowHigh") {
+          data.sort((a, b) => a.price - b.price)
+        } else if (sortBy === "priceHighLow") {
+          data.sort((a, b) => b.price - a.price)
+        } //else if (sortBy === "latest") {
+        //   data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        // } else if (sortBy === "trending") {
+        //   data.sort((a, b) => b.popularity - a.popularity) // если есть поле popularity
+        // }
+        let filtered = data
+        if(selectedCategories.length>0){
+          filtered = filtered.filter((p) =>
+            selectedCategories.includes(p.category)
+          )
+        }
+
+        if(selectedPrices.length>0){
+          filtered = filtered.filter((p) => {
+            return selectedPrices.some((rangeId) => {
+              const price = p.price
+              switch (rangeId) {
+                case "1":
+                  return price < 25
+                case "2":
+                  return price >= 25 && price <= 50
+                case "3":
+                  return price > 50 && price <= 100
+                case "4":
+                  return price > 100 && price <= 200
+                case "5":
+                  return price > 200
+                default:
+                  return true
+              }
+            })
+          })
+        }
+        setProducts(filtered)
       } catch (err) {
         setError("Failed to load products. Please try again.")
         console.error("Error fetching products:", err)
@@ -40,7 +80,7 @@ export default function ProductGrid({ search, category }: ProductGridProps) {
     }
 
     fetchProducts()
-  }, [category, search])
+  }, [category, search, sortBy, selectedCategories, selectedPrices])
 
   const handleAddToCart = (product: any) => {
     addToCart(product, 1)
@@ -93,7 +133,8 @@ export default function ProductGrid({ search, category }: ProductGridProps) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
       {products.map((product) => (
-        <Card key={product.id} className="overflow-hidden group">
+        <div key={product.id} className="opacity-0 animate-fade-in">
+        <Card key={product.id} className="overflow-hidden group transition-all duration-300">
           <div className="relative">
             <Link href={`/product-details/${product.id}`}>
               <div className="overflow-hidden">
@@ -137,6 +178,7 @@ export default function ProductGrid({ search, category }: ProductGridProps) {
             </Button>
           </CardFooter>
         </Card>
+        </div>
       ))}
     </div>
   )

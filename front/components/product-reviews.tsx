@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import Modal from "./modal"
+import { User } from "@/contexts/auth-context"
 
 interface ProductReviewsProps {
   productId: number
@@ -23,6 +24,7 @@ interface Review {
   date: string
   text: string
   helpfulCount: number
+  user: User
 }
 
 export default function ProductReviews({ productId }: ProductReviewsProps) {
@@ -147,7 +149,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
             <div key={review.id} className="space-y-2">
               <div className="flex items-start">
                 <Avatar className="h-10 w-10 mr-3">
-                  <AvatarImage src={review.user_avatar} alt={review.user_name} />
+                  <AvatarImage src={`http://127.0.0.1:8000${review.user_avatar}`} alt={review.user_name} />
                   {/* <AvatarFallback>{review.userName.charAt(0)}</AvatarFallback> */}
                 </Avatar>
                 <div className="flex-1">

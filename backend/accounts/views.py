@@ -2,7 +2,7 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth.models import User
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, parser_classes
 import json
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.decorators import login_required
@@ -12,6 +12,7 @@ from rest_framework import status
 from .models import *
 from django.shortcuts import get_object_or_404
 from django.db import transaction
+from rest_framework.parsers import MultiPartParser, FormParser
 
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
@@ -358,3 +359,38 @@ def update_password(request):
     user.set_password(new_password)
     user.save()
     return Response({'message': 'Пароль успешно обновлен'}, status=status.HTTP_200_OK)
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated]) 
+def get_profile_picture(request):
+    default_image_url = '/media/profile_pics/default.jpg'
+    try:
+        profile = request.user.profile  # thanks to related_name='profile'
+        image_url = profile.image.url if profile.image else default_image_url
+    except ProfilePicture.DoesNotExist:
+        image_url = default_image_url
+
+    return JsonResponse({
+            "user_id": request.user.id,
+            "image": image_url
+    })
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+@parser_classes([MultiPartParser, FormParser])
+def upload_profile_picture(request):
+    user = request.user
+    image_file = request.FILES.get("image")
+
+    if not image_file:
+        return JsonResponse({"error": "Изображение не отправлено"}, status=400)
+
+    profile, created = ProfilePicture.objects.get_or_create(user=user)
+    profile.image = image_file
+    profile.save()
+
+    return JsonResponse({
+        "message": "Аватар успешно загружен",
+        "user_id": user.id,
+        "image": profile.image.url
+    }, status=200)
