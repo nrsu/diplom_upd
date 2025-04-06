@@ -6,6 +6,9 @@ class Category(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(null=True, blank=True)
 
+    def __str__(self):
+        return self.name
+
     def to_dict(self):
         return {
             "name": self.name,
@@ -26,6 +29,9 @@ class Product(models.Model):
     dimensions = models.TextField(default="test")
     materials = models.TextField(default="test")
     in_the_box = models.TextField(default="test")
+
+    def __str__(self):
+        return self.name
 
     def save(self, *args, **kwargs):
         if self.discount:  # Проверяем, есть ли скидка
