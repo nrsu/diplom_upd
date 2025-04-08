@@ -12,9 +12,9 @@ import "./globals.css"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "E-commerce Store",
+  title: "Zhibek Zholy",
   description: "Shop the latest products with amazing deals",
-    generator: 'v0.dev'
+    //  generator: 'v0.dev'
 }
 
 export default function RootLayout({

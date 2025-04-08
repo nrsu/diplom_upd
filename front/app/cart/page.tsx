@@ -59,7 +59,7 @@ export default function CartPage() {
                     <div className="flex items-center">
                       <div className="h-24 w-24 rounded-md overflow-hidden">
                         <img
-                          src={item.image || "/placeholder.svg"}
+                          src={`http://127.0.0.1:8000${item.image}` || "/placeholder.svg"}
                           alt={item.name}
                           className="h-full w-full object-cover"
                         />

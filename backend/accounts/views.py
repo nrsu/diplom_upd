@@ -1,3 +1,4 @@
+from django.core.mail import send_mail
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.models import User
 from django.http import JsonResponse
@@ -158,14 +159,30 @@ def get_products(request):
     products = Product.objects.all()
     return JsonResponse([product.to_dict() for product in products], safe=False)
 
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_seller_products(request):
+    products = Product.objects.filter(user=request.user)
+    return JsonResponse([product.to_dict() for product in products], safe=False)
+
 def get_categories(request):
     categories = Category.objects.all()
     return JsonResponse([category.to_dict() for category in categories], safe=False)
 
 @csrf_exempt
 def get_product_details(request, product_id):
+    # Получаем продукт
     product = get_object_or_404(Product, id=product_id)
-    return JsonResponse(product.to_dict(), safe=False)
+    
+    # Получаем все изображения, связанные с этим продуктом
+    product_images = ProductImage.objects.filter(product=product)
+    image_urls = [image.image.url for image in product_images]
+    
+    # Формируем данные о продукте
+    product_data = product.to_dict()
+    product_data['images'] = image_urls  # Добавляем список изображений
+
+    return JsonResponse(product_data, safe=False)
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
@@ -189,11 +206,17 @@ def post_order(request):
             # Добавление товаров в заказ
             order_items = []
             for item in data["items"]:
-                product = Product.objects.get(id=item["product_id"])
+                product = Product.objects.select_for_update().get(id=item["product_id"])  # 🔒 Блокируем на время транзакции
+                ordered_quantity = item["quantity"]
+                if product.quantity < ordered_quantity:
+                    raise ValueError(f"Недостаточно товара '{product.name}' в наличии (доступно: {product.quantity})")
+                product.quantity -= ordered_quantity
+                product.sold += ordered_quantity
+                product.save()
                 order_item = OrderItem.objects.create(
                     order=order,
                     product=product,
-                    quantity=item["quantity"],
+                    quantity=ordered_quantity,
                     selected_color=item.get("selected_color"),
                     selected_size=item.get("selected_size"),
                 )
@@ -213,7 +236,42 @@ def post_order(request):
                 zip_code=shipping.get("zip_code", ""),
                 country=shipping.get("country", "Kazakhstan"),
             )
+        # ✉️ Отправка письма клиенту
+        print("rabotaet")
+        print("Отправка email на:", shipping_info.email)
+        subject = "Ваш заказ принят!"
+        message = f"""
+Здравствуйте, {shipping_info.first_name}!
 
+Спасибо за покупку! Вот детали вашего заказа:
+
+Номер заказа: {order.id}
+Сумма: {order.total_price} ₸
+Способ оплаты: {order.payment_method}
+Дата заказа: {order.created_at.strftime('%d.%m.%Y %H:%M')}
+
+Товары:
+"""
+        for item in order_items:
+            message += f"- {item.product.name} x{item.quantity}\n"
+
+        message += f"""
+
+Информация о доставке:
+{shipping_info.address}, {shipping_info.city}, {shipping_info.country}
+Телефон: {shipping_info.phone}
+
+Мы свяжемся с вами в ближайшее время!
+С уважением, команда Zhibek Zholy.
+"""
+        
+        send_mail(
+            subject,
+            message,
+            None,  # Использует DEFAULT_FROM_EMAIL
+            [shipping_info.email],
+            fail_silently=True,
+        )
         # Готовим JSON-ответ
         response_data = {
             "id": order.id,
@@ -290,7 +348,7 @@ def get_order(request):
                     "quantity": item.quantity,
                     "selected_color": item.selected_color,
                     "selected_size": item.selected_size,
-                    "image": getattr(item.product, "image_url", None),  # ✅ Безопасная проверка
+                    "image": item.product.images.first().image.url if item.product.images.exists() else "/placeholder.svg?height=50&width=50",  # ✅ Безопасная проверка
                 }
                 for item in order.items.all()
             ],
@@ -298,9 +356,13 @@ def get_order(request):
 
     return Response(order_data, status=status.HTTP_200_OK)
 
+@api_view(["GET"])
 def get_review(request, product_id):
+    current_user = request.user #if request.user.is_authenticated else None
+    print(f"Current User: {current_user}")
     reviews = Review.objects.filter(product_id=product_id)
-    return JsonResponse([review.to_dict() for review in reviews], safe=False)
+    reviews_data = [review.to_dict(current_user=current_user) for review in reviews]
+    return JsonResponse(reviews_data, safe=False)
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
@@ -394,3 +456,175 @@ def upload_profile_picture(request):
         "user_id": user.id,
         "image": profile.image.url
     }, status=200)
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def create_product(request):
+    data = request.data
+    user = request.user
+
+    try:
+        product = Product.objects.create(
+            name=data.get("name"),
+            category_id=data.get("category_id"),
+            user=user,
+            original_price=Decimal(data.get("original_price")),
+            discount=int(data.get("discount", 0)),
+            quantity=int(data.get("quantity", 0)),
+            image=data.get("image"),  # если передаешь файл через multipart/form-data
+            colors=data.get("colors", []),
+            sizes=data.get("sizes", []),
+            description=data.get("description", "test"),
+            dimensions=data.get("dimensions", "test"),
+            materials=data.get("materials", "test"),
+            in_the_box=data.get("in_the_box", "test")
+        )
+
+        return Response(product.to_dict(), status=201)
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=400)
+
+@api_view(["PUT", "PATCH"])
+@permission_classes([IsAuthenticated])
+def update_product(request, product_id):
+    try:
+        product = Product.objects.get(id=product_id, user=request.user)
+    except Product.DoesNotExist:
+        return Response({"error": "Товар не найден или доступ запрещён"}, status=404)
+
+    data = request.data
+
+    product.name = data.get("name", product.name)
+    product.category_id = data.get("category_id", product.category_id)
+    product.original_price = data.get("original_price", product.original_price)
+    product.discount = data.get("discount", product.discount)
+    product.quantity = data.get("quantity", product.quantity)
+    product.colors = data.get("colors", product.colors)
+    product.sizes = data.get("sizes", product.sizes)
+    product.description = data.get("description", product.description)
+    product.dimensions = data.get("dimensions", product.dimensions)
+    product.materials = data.get("materials", product.materials)
+    product.in_the_box = data.get("in_the_box", product.in_the_box)
+
+    if "image" in request.FILES:
+        product.image = request.FILES["image"]
+
+    product.save()
+    return Response(product.to_dict(), status=200)
+
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+def delete_product(request, product_id):
+    try:
+        product = Product.objects.get(id=product_id, user=request.user)
+    except Product.DoesNotExist:
+        return Response({"error": "Товар не найден или доступ запрещён"}, status=404)
+
+    product.delete()
+    return Response({"message": "Товар успешно удалён"}, status=200)
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_seller_orders(request):
+    seller = request.user
+
+    # Получаем все order items, где продукт принадлежит текущему продавцу
+    order_items = OrderItem.objects.select_related("order", "product").filter(product__user=seller)
+
+    # Собираем заказы
+    orders_data = {}
+    for item in order_items:
+        order_id = item.order.id
+        if order_id not in orders_data:
+            orders_data[order_id] = {
+                "id": item.order.id,
+                "buyer_id": item.order.user.id,
+                "payment_method": item.order.payment_method,
+                "total_price": float(item.order.total_price),
+                "status": item.order.status,
+                "created_at": item.order.created_at.isoformat(),
+                "items": []
+            }
+
+        orders_data[order_id]["items"].append({
+            "product_id": item.product.id,
+            "product_name": item.product.name,
+            "quantity": item.quantity,
+            "selected_color": item.selected_color,
+            "selected_size": item.selected_size,
+        })
+
+    return Response(list(orders_data.values()), status=200)
+
+@api_view(["PUT"])
+@permission_classes([IsAuthenticated])
+def update_order_status(request, order_id):
+    try:
+        order = Order.objects.get(id=order_id)
+        new_status = request.data.get("status")
+
+        if new_status not in dict(Order.STATUS_CHOICES):
+            return Response({"error": "Недопустимый статус"}, status=400)
+
+        # Проверка: есть ли товары в заказе, принадлежащие текущему пользователю
+        seller_items = order.items.filter(product__user=request.user)
+        if not seller_items.exists():
+            return Response({"error": "Вы не можете изменить статус этого заказа"}, status=403)
+
+        order.status = new_status
+        order.save()
+
+        # Отправка письма клиенту
+        try:
+            shipping_info = ShippingInfo.objects.get(order=order)
+            subject = f"Обновление статуса заказа #{order.id}"
+            message = f"""
+Здравствуйте, {shipping_info.first_name}!
+
+Статус вашего заказа №{order.id} был обновлён.
+
+Текущий статус: {order.status.upper()}
+
+Спасибо, что выбираете Zhibek Zholy!
+"""
+            send_mail(
+                subject,
+                message,
+                None,
+                [shipping_info.email],
+                fail_silently=True,
+            )
+        except ShippingInfo.DoesNotExist:
+            pass
+
+        return Response({
+            "message": "Статус заказа обновлён",
+            "order_id": order.id,
+            "new_status": order.status
+        })
+
+    except Order.DoesNotExist:
+        return Response({"error": "Заказ не найден"}, status=404)
+
+@api_view(["PUT", "DELETE"])
+@permission_classes([IsAuthenticated])
+def update_or_delete_review(request, pk):
+    try:
+        review = Review.objects.get(pk=pk)
+    except Review.DoesNotExist:
+        return Response({"message": "Review not found"}, status=404)
+
+    if review.user != request.user:
+        return Response({"message": "Permission denied"}, status=403)
+
+    if request.method == "PUT":
+        data = request.data
+        review.text = data.get("text", review.text)
+        review.rating = data.get("rating", review.rating)
+        review.save()
+        return Response({"message": "Review updated successfully"})
+
+    elif request.method == "DELETE":
+        review.delete()
+        return Response({"message": "Review deleted successfully"})

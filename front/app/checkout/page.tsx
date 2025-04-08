@@ -23,12 +23,12 @@ export default function CheckoutPage() {
   const router = useRouter()
   const { cart, cartTotal, clearCart } = useStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
-
+  const user = JSON.parse(localStorage.getItem("user"));
   // Form state
   const [shippingInfo, setShippingInfo] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
+    firstName: user.first_name,
+    lastName: user.last_name,
+    email: user.email,
     phone: "",
     address: "",
     city: "",
@@ -343,7 +343,7 @@ export default function CheckoutPage() {
                   >
                     <div className="h-16 w-16 rounded-md overflow-hidden">
                       <img
-                        src={item.image || "/placeholder.svg"}
+                        src={`http://127.0.0.1:8000${item.image}` || "/placeholder.svg"}
                         alt={item.name}
                         className="h-full w-full object-cover"
                       />

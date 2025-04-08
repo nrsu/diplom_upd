@@ -54,7 +54,7 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
         <div>{children}</div>
 
         {/* Кнопки */}
-        <div className="mt-4 flex justify-end gap-2">
+        {/* <div className="mt-4 flex justify-end gap-2">
           <button
             onClick={onClose}
             className="rounded-lg bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300"
@@ -67,7 +67,7 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
           >
             Confirm
           </button>
-        </div>
+        </div> */}
       </div>
 
       {/* Анимации */}

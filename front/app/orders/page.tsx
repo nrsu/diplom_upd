@@ -67,6 +67,7 @@ export default function OrdersPage() {
           <Tabs defaultValue="all" className="w-full">
             <TabsList className="grid w-full grid-cols-4 max-w-md mb-8">
               <TabsTrigger value="all">All</TabsTrigger>
+              {/* <TabsTrigger value="pending">Pending</TabsTrigger> */}
               <TabsTrigger value="processing">Processing</TabsTrigger>
               <TabsTrigger value="shipped">Shipped</TabsTrigger>
               <TabsTrigger value="delivered">Delivered</TabsTrigger>

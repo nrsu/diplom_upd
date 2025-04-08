@@ -39,7 +39,7 @@ export default function WishlistPage() {
                 <Link href={`/product-details/${item.id}`}>
                   <div className="overflow-hidden">
                     <img
-                      src={item.image || "/placeholder.svg"}
+                      src={`http://127.0.0.1:8000${item.image}` || "/placeholder.svg"}
                       alt={item.name}
                       className="w-full h-[200px] object-cover transition-transform group-hover:scale-105"
                     />

@@ -44,7 +44,7 @@ export default function ProductDetailsPage({ params }: ProductDetailsPageProps) 
 
   const [selectedColor, setSelectedColor] = useState("")
   const [selectedSize, setSelectedSize] = useState("")
-
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const [reviews, setReviews] = useState<Review[]>([])
   const [reviewText, setReviewText] = useState("")
@@ -170,21 +170,33 @@ export default function ProductDetailsPage({ params }: ProductDetailsPageProps) 
         <div className="space-y-4">
           <div className="border rounded-lg overflow-hidden">
             <img
-              src={product.image || "/placeholder.svg?height=400&width=400"}
+              src={selectedImage || (product.image ? `http://127.0.0.1:8000${product.image}` : "/placeholder.svg?height=400&width=400")}
               alt={product.name}
               className="w-full h-[400px] object-cover"
             />
           </div>
+
           <div className="grid grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map((i) => (
-              <button key={i} className="border rounded-lg overflow-hidden">
-                <img
-                  src={product.image || "/placeholder.svg?height=100&width=100"}
-                  alt={`${product.name} view ${i}`}
-                  className="w-full h-20 object-cover"
-                />
-              </button>
-            ))}
+            {product.images && product.images.length > 0 ? (
+              product.images.map((image, index) => {
+                const imageUrl = `http://127.0.0.1:8000${image}`;
+                return (
+                  <button
+                    key={index}
+                    className="border rounded-lg overflow-hidden"
+                    onClick={() => setSelectedImage(imageUrl)} // Устанавливаем выбранное изображение
+                  >
+                    <img
+                      src={imageUrl || "/placeholder.svg?height=100&width=100"}
+                      alt={`${product.name} view ${index + 1}`}
+                      className="w-full h-20 object-cover"
+                    />
+                  </button>
+                );
+              })
+            ) : (
+              <p>No additional images available.</p>
+            )}
           </div>
         </div>
 

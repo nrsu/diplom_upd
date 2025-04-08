@@ -1,13 +1,17 @@
 from django.db import models
 from decimal import Decimal
 from django.contrib.auth.models import User
+from django.utils import timezone
+from datetime import timedelta
+import os
 
 class Category(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(null=True, blank=True)
-
+    
     def __str__(self):
         return self.name
+    
 
     def to_dict(self):
         return {
@@ -15,14 +19,22 @@ class Category(models.Model):
             "description": self.description,
         }
 
-
+def product_image_upload_to(instance, filename):
+    # Получаем путь для сохранения изображения
+    product_id = instance.product.id  # id продукта
+    return os.path.join('product_images', str(product_id), filename)
+    
 class Product(models.Model):
     name = models.CharField(max_length=255)
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name="products")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="products")
+    created_at = models.DateTimeField(auto_now_add=True)
     price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    quantity = models.PositiveIntegerField(default=0)
+    sold = models.PositiveIntegerField(default=0)
     original_price = models.DecimalField(max_digits=10, decimal_places=2)
     discount = models.PositiveIntegerField(default=0)
-    image = models.ImageField(upload_to='product_images/', null=True, blank=True)  # Используем ImageField
+    image = models.ImageField(upload_to=product_image_upload_to, null=True, blank=True)  # Используем ImageField
     colors = models.JSONField()
     sizes = models.JSONField()
     description = models.TextField(default="test")
@@ -40,6 +52,24 @@ class Product(models.Model):
             self.price = self.original_price  # Если скидки нет, цена остается оригинальной
         super().save(*args, **kwargs)
 
+
+    @property
+    def weekly_sold(self):
+        one_week_ago = timezone.now() - timedelta(days=7)
+        order_items = OrderItem.objects.filter(
+            product=self,
+            order__created_at__gte=one_week_ago,
+            order__status__in=['processing', 'shipped', 'delivered']  # можно ограничить только успешными заказами
+        )
+        return sum(item.quantity for item in order_items)
+
+    @property
+    def image_directory(self):
+        """Возвращает директорию, в которой хранится изображение продукта."""
+        if self.image:
+            return os.path.dirname(self.image.name)  # Путь к директории
+        return None
+
     def to_dict(self):
         """Возвращает данные о продукте с учетом скидки."""
         product_data = {
@@ -55,6 +85,11 @@ class Product(models.Model):
             "dimensions": self.dimensions,
             "materials": self.materials,
             "in_the_box": self.in_the_box,
+            "quantity": self.quantity,
+            "created_at": self.created_at,
+            "sold": self.sold,
+            "weekly_sold": self.weekly_sold,
+            "image_directory": self.image_directory
         }
 
         if self.discount > 0:
@@ -63,9 +98,26 @@ class Product(models.Model):
 
         return product_data
 
+class ProductImage(models.Model):
+    product = models.ForeignKey(Product, related_name='images', on_delete=models.CASCADE)
+    image = models.ImageField(upload_to=product_image_upload_to, null=True, blank=True)
+
+    def clean(self):
+        # Проверяем количество изображений, связанных с продуктом
+        if self.product.images.count() >= 4:
+            raise ValidationError("A product can have a maximum of 4 images.")
+
+    def save(self, *args, **kwargs):
+        self.clean()  # Вызовем чистку перед сохранением
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.product.name} - Image {self.id}"
+
+
 class Order(models.Model):
     STATUS_CHOICES = [
-        ('pending', 'Pending'),
+        # ('pending', 'Pending'),
         ('processing', 'Processing'),
         ('shipped', 'Shipped'),
         ('delivered', 'Delivered')
@@ -74,8 +126,11 @@ class Order(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     payment_method = models.CharField(max_length=50)
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='processing')
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return "#ORD-"+str(self.id)
 
     def to_dict(self):
         return {
@@ -98,6 +153,9 @@ class ShippingInfo(models.Model):
     zip_code = models.CharField(max_length=20)
     country = models.CharField(max_length=100, default='Kazakhstan')
 
+    def __str__(self):
+        return "#ORD-"+str(self.order.id)
+
     def to_dict(self):
         return{
             "order": self.order,
@@ -118,14 +176,18 @@ class OrderItem(models.Model):
     quantity = models.PositiveIntegerField()
     selected_color = models.CharField(max_length=50, blank=True, null=True)
     selected_size = models.CharField(max_length=50, blank=True, null=True)
-
+    #image = models.ImageField(upload_to=product_image_upload_to, null=True, blank=True)
     def to_dict(self):
+        product = self.product
+        first_image = product.images.first()
+        #print(product)
         return{
             "order": self.order,
             "product": self.product,
             "quantity": self.quantity,
             "selected_color": self.selected_color,
-            "selected_size": self.selected_size
+            "selected_size": self.selected_size,
+            "image": "zalupa"
         }
 
 class Review(models.Model):
@@ -135,8 +197,12 @@ class Review(models.Model):
     text = models.TextField()
     helpful_count = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return self.product.name+" "+self.user.first_name
 
-    def to_dict(self):
+    def to_dict(self, current_user=None):
+        can_edit = current_user and current_user.id == self.user.id
         profile = getattr(self.user, "profile", None)
         avatar_url = profile.image.url if profile and profile.image else "/placeholder.svg"
         return {
@@ -148,12 +214,14 @@ class Review(models.Model):
             "date": self.created_at.strftime("%Y-%m-%d"),
             "text": self.text,
             "helpful_count": self.helpful_count,
+            "can_edit": can_edit
         }
 
 class ProfilePicture(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')  # Связь с пользователем
     image = models.ImageField(upload_to='profile_pics/', default='profile_pics/default.jpg')  # Путь для хранения изображения
-
+    def __str__(self):
+        return self.user.first_name
     def to_dict(self):
         return{
             "user_id": user.id,

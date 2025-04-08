@@ -15,5 +15,12 @@ urlpatterns = [
     path("post-review/<str:product_id>/", post_review, name="post-review"),
     path("user/password/", update_password, name="update-password"),
     path("profile-picture/", get_profile_picture, name="get-profile-picture"),
-    path('upload-profile-picture/', upload_profile_picture, name='upload_profile_picture')
+    path('upload-profile-picture/', upload_profile_picture, name='upload_profile_picture'),
+    path('get-seller-products/', get_seller_products, name='get-seller-products'),
+    path('create-product/', create_product, name='create-product'),
+    path('products/<int:product_id>/update/', update_product, name='update-product'),
+    path('products/<int:product_id>/delete/', delete_product, name='delete-product'),
+    path("orders/seller/", get_seller_orders, name="get_seller_orders"),
+    path("orders/<int:order_id>/update-status/", update_order_status),
+    path("update_or_delete_review/<int:pk>/", update_or_delete_review, name="update_or_delete_review"),
 ]

@@ -37,11 +37,11 @@ export default function ProductGrid({ search, category, sortBy, selectedCategori
           data.sort((a, b) => a.price - b.price)
         } else if (sortBy === "priceHighLow") {
           data.sort((a, b) => b.price - a.price)
-        } //else if (sortBy === "latest") {
-        //   data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        // } else if (sortBy === "trending") {
-        //   data.sort((a, b) => b.popularity - a.popularity) // если есть поле popularity
-        // }
+        } else if (sortBy === "latest") {
+           data.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+         } else if (sortBy === "trending") {
+           data.sort((a, b) => b.weekly_sold - a.weekly_sold) // если есть поле popularity
+         }
         let filtered = data
         if(selectedCategories.length>0){
           filtered = filtered.filter((p) =>
@@ -139,7 +139,7 @@ export default function ProductGrid({ search, category, sortBy, selectedCategori
             <Link href={`/product-details/${product.id}`}>
               <div className="overflow-hidden">
                 <img
-                  src={product.image || "/placeholder.svg"}
+                  src={`http://127.0.0.1:8000${product.image}` || "/placeholder.svg"}
                   alt={product.name}
                   className="w-full h-[200px] object-cover transition-transform group-hover:scale-105"
                 />

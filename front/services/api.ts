@@ -61,6 +61,9 @@ const getAuthToken = () => {
     image: string;
     colors: string[];
     sizes: string[];
+    created_at: string;
+    weekly_sold: number;
+    image_directory: string;
   }
 
   interface Review{
@@ -72,6 +75,7 @@ const getAuthToken = () => {
     date: string;
     text: string;
     helpfulCount: number;
+    can_edit: boolean;
   }
 // Products API
 export const productsAPI = {
@@ -112,14 +116,32 @@ export const productsAPI = {
     return await response.json(); // Предполагаем, что сервер вернет массив строк ["Electronics", "Clothing", ...]
   },
   getReviews: async (id: number) =>{
-    const response = await fetch(`http://127.0.0.1:8000/api/review/${id}`);
+    
+    const tokens = JSON.parse(localStorage.getItem("tokens") || "{}")
+    console.log(tokens)
+    let response;
+    if(Object.keys(tokens).length === 0){
+      response = await fetch(`http://127.0.0.1:8000/api/review/${id}`);
+    } else{
+
+    response = await fetch(`http://127.0.0.1:8000/api/review/${id}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${tokens.access}`,
+      }
+    })}
+
+
+
+    //const response = await fetch(`http://127.0.0.1:8000/api/review/${id}`);
     if (!response.ok) {
       throw new Error("Ошибка при загрузке продукта");
     }
 
     // Парсим JSON-ответ
     const reviews: Review[] = await response.json();
-
+    //console.log(reviews[10].can_edit)
     return reviews;
   }, 
 
@@ -438,7 +460,7 @@ export const ordersAPI = {
       }
 
       const orders = await response.json();
-
+      console.log(orders[0])
       // Форматируем данные под формат мок-даты
       return orders.map((order) => ({
         id: `ORD-${order.id}`, // Префикс ORD-
@@ -454,7 +476,7 @@ export const ordersAPI = {
           name: item.name,
           price: parseFloat(item.price), // Преобразуем цену в float
           quantity: item.quantity,
-          image: item.image || "/placeholder.svg?height=50&width=50", // Дефолтное изображение
+          image: `http://127.0.0.1:8000${item.image}` || "/placeholder.svg?height=50&width=50", // Дефолтное изображение
         })),
       }));
     } catch (error) {
